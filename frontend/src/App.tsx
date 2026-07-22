@@ -1,28 +1,33 @@
-import {useState} from 'react';
-import logo from './assets/images/logo-universal.png';
-import './App.css';
-import {Greet} from "../wailsjs/go/main/App";
+import {useState} from 'react'
+import {Theme} from '@astryxdesign/core'
+import {neutralTheme} from '@astryxdesign/theme-neutral'
+import LandingPage from './pages/LandingPage'
+import ProjectPage from './pages/ProjectPage'
+
+type View =
+  | {name: 'landing'}
+  | {name: 'project'; projectPath: string}
 
 function App() {
-    const [resultText, setResultText] = useState("Please enter your name below 👇");
-    const [name, setName] = useState('');
-    const updateName = (e: any) => setName(e.target.value);
-    const updateResultText = (result: string) => setResultText(result);
+  const [view, setView] = useState<View>({name: 'landing'})
 
-    function greet() {
-        Greet(name).then(updateResultText);
-    }
-
-    return (
-        <div id="App">
-            <img src={logo} id="logo" alt="logo"/>
-            <div id="result" className="result">{resultText}</div>
-            <div id="input" className="input-box">
-                <input id="name" className="input" onChange={updateName} autoComplete="off" name="input" type="text"/>
-                <button className="btn" onClick={greet}>Greet</button>
-            </div>
-        </div>
-    )
+  return (
+    <Theme theme={neutralTheme}>
+      <div id="app">
+        {view.name === 'landing' && (
+          <LandingPage
+            onSelectProject={(path) => setView({name: 'project', projectPath: path})}
+          />
+        )}
+        {view.name === 'project' && (
+          <ProjectPage
+            projectPath={view.projectPath}
+            onBack={() => setView({name: 'landing'})}
+          />
+        )}
+      </div>
+    </Theme>
+  )
 }
 
 export default App

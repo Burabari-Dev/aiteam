@@ -9,6 +9,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@astryxdesign/cli": "^0.1.7",
+    "@astryxdesign/core": "^0.1.7",
+    "@astryxdesign/theme-neutral": "^0.1.7",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
