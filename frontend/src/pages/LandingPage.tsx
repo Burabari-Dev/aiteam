@@ -12,7 +12,7 @@ import {Dialog, DialogHeader} from '@astryxdesign/core/Dialog'
 import {TextInput} from '@astryxdesign/core/TextInput'
 import {CheckboxList, CheckboxListItem} from '@astryxdesign/core/CheckboxList'
 import {Layout, LayoutContent, LayoutFooter} from '@astryxdesign/core/Layout'
-import {GetProjects, AddProject, RemoveProject, CreateProjectWithRoles, GetRoleTemplates} from '../../wailsjs/go/main/App'
+import {GetProjects, AddProject, RemoveProject, CreateProjectWithRoles, GetRoleTemplates, PickDirectory} from '../../wailsjs/go/main/App'
 import type {main} from '../../wailsjs/go/models'
 
 interface Props {
@@ -177,23 +177,6 @@ export default function LandingPage({onSelectProject}: Props) {
 }
 
 async function pickDirectory(): Promise<string | null> {
-  const input = document.createElement('input')
-  input.type = 'file'
-  input.setAttribute('directory', '')
-  input.setAttribute('webkitdirectory', '')
-  return new Promise((resolve) => {
-    input.onchange = () => {
-      const files = input.files
-      if (files && files.length > 0) {
-        const file = files[0] as File & {path?: string; webkitRelativePath?: string}
-        const relPath = file.webkitRelativePath || ''
-        const fullPath = file.path || ''
-        const root = fullPath.replace('\\' + relPath, '').replace('/' + relPath, '')
-        resolve(root || fullPath)
-      } else {
-        resolve(null)
-      }
-    }
-    input.click()
-  })
+  const result = await PickDirectory()
+  return result || null
 }

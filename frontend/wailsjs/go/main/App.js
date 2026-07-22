@@ -54,6 +54,10 @@ export function LoadMeeting(arg1, arg2) {
   return window['go']['main']['App']['LoadMeeting'](arg1, arg2);
 }
 
+export function PickDirectory() {
+  return window['go']['main']['App']['PickDirectory']();
+}
+
 export function RemoveProject(arg1) {
   return window['go']['main']['App']['RemoveProject'](arg1);
 }

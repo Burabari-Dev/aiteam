@@ -28,6 +28,8 @@ export function ListMeetings(arg1:string):Promise<Array<main.MeetingSummary>>;
 
 export function LoadMeeting(arg1:string,arg2:string):Promise<main.Meeting>;
 
+export function PickDirectory():Promise<string>;
+
 export function RemoveProject(arg1:string):Promise<boolean>;
 
 export function SaveMeetingMessage(arg1:string,arg2:string,arg3:main.Message):Promise<boolean>;
