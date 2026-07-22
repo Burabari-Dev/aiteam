@@ -10,8 +10,9 @@ import {EmptyState} from '@astryxdesign/core/EmptyState'
 import {TopNav, TopNavHeading} from '@astryxdesign/core/TopNav'
 import {Dialog, DialogHeader} from '@astryxdesign/core/Dialog'
 import {TextInput} from '@astryxdesign/core/TextInput'
+import {CheckboxList, CheckboxListItem} from '@astryxdesign/core/CheckboxList'
 import {Layout, LayoutContent, LayoutFooter} from '@astryxdesign/core/Layout'
-import {GetProjects, AddProject, RemoveProject} from '../../wailsjs/go/main/App'
+import {GetProjects, AddProject, RemoveProject, CreateProjectWithRoles, GetRoleTemplates} from '../../wailsjs/go/main/App'
 import type {main} from '../../wailsjs/go/models'
 
 interface Props {
@@ -29,26 +30,35 @@ function formatDate(iso: string): string {
 
 export default function LandingPage({onSelectProject}: Props) {
   const [projects, setProjects] = useState<main.ProjectRegistryEntry[]>([])
+  const [templates, setTemplates] = useState<main.RoleTemplate[]>([])
   const [showNewProject, setShowNewProject] = useState(false)
   const [newPath, setNewPath] = useState('')
   const [newName, setNewName] = useState('')
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([])
 
   const loadProjects = async () => {
     const list = await GetProjects()
     setProjects(list)
   }
 
-  useEffect(() => { loadProjects() }, [])
+  const loadTemplates = async () => {
+    const t = await GetRoleTemplates()
+    setTemplates(t)
+  }
+
+  useEffect(() => {
+    loadProjects()
+    loadTemplates()
+  }, [])
 
   const handleAddProject = async () => {
-    if (!newPath) return
-    const entry = await AddProject(newPath)
-    if (entry && entry.path) {
-      loadProjects()
-      setShowNewProject(false)
-      setNewPath('')
-      setNewName('')
-    }
+    if (!newPath || !newName) return
+    await CreateProjectWithRoles(newPath, newName, '', selectedRoles)
+    loadProjects()
+    setShowNewProject(false)
+    setNewPath('')
+    setNewName('')
+    setSelectedRoles([])
   }
 
   const handleRemove = async (path: string) => {
@@ -65,6 +75,8 @@ export default function LandingPage({onSelectProject}: Props) {
       }
     }
   }
+
+  const allRoleNames = templates.map(t => t.name)
 
   return (
     <>
@@ -108,9 +120,9 @@ export default function LandingPage({onSelectProject}: Props) {
       </div>
 
       {showNewProject && (
-          <Dialog isOpen={showNewProject} onOpenChange={(open: boolean) => setShowNewProject(open)} width={480}>
+        <Dialog isOpen={showNewProject} onOpenChange={(open: boolean) => setShowNewProject(open)} width={520}>
           <Layout
-            header={<DialogHeader title="Add Project" onOpenChange={(open: boolean) => setShowNewProject(open)} />}
+            header={<DialogHeader title="New Project" onOpenChange={(open: boolean) => setShowNewProject(open)} />}
             content={
               <LayoutContent>
                 <VStack gap={3}>
@@ -119,10 +131,28 @@ export default function LandingPage({onSelectProject}: Props) {
                     value={newName}
                     onChange={(value: string) => setNewName(value)}
                   />
-                  <Button label="Browse..." variant="secondary" onClick={handleSelectFolder} />
+                  <Button label="Choose Project Folder..." variant="secondary" onClick={handleSelectFolder} />
                   {newPath && (
                     <Text type="supporting" color="secondary">{newPath}</Text>
                   )}
+                  <CheckboxList
+                    label="Team Roles"
+                    value={selectedRoles}
+                    onChange={(values: string[]) => setSelectedRoles(values)}
+                    hasDividers
+                  >
+                    {templates.map((t) => (
+                      <CheckboxListItem
+                        key={t.name}
+                        value={t.name}
+                        label={t.label}
+                        description={t.description}
+                      />
+                    ))}
+                  </CheckboxList>
+                  <Text type="supporting" color="disabled">
+                    Select all roles you want on your team. You can change this later.
+                  </Text>
                 </VStack>
               </LayoutContent>
             }
@@ -130,7 +160,12 @@ export default function LandingPage({onSelectProject}: Props) {
               <LayoutFooter hasDivider>
                 <HStack gap={2} style={{justifyContent: 'flex-end'}}>
                   <Button label="Cancel" variant="secondary" onClick={() => setShowNewProject(false)} />
-                  <Button label="Add" variant="primary" onClick={handleAddProject} />
+                  <Button
+                    label="Create Project"
+                    variant="primary"
+                    isDisabled={!newPath || !newName}
+                    onClick={handleAddProject}
+                  />
                 </HStack>
               </LayoutFooter>
             }

@@ -10,12 +10,20 @@ export function CreateProject(arg1, arg2, arg3) {
   return window['go']['main']['App']['CreateProject'](arg1, arg2, arg3);
 }
 
+export function CreateProjectWithRoles(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['CreateProjectWithRoles'](arg1, arg2, arg3, arg4);
+}
+
+export function EndActiveMeeting(arg1) {
+  return window['go']['main']['App']['EndActiveMeeting'](arg1);
+}
+
 export function EndMeeting(arg1, arg2, arg3) {
   return window['go']['main']['App']['EndMeeting'](arg1, arg2, arg3);
 }
 
-export function GetOrCreateActiveMeeting(arg1) {
-  return window['go']['main']['App']['GetOrCreateActiveMeeting'](arg1);
+export function GetActiveMeeting(arg1) {
+  return window['go']['main']['App']['GetActiveMeeting'](arg1);
 }
 
 export function GetProjectMeta(arg1) {
@@ -52,4 +60,8 @@ export function RemoveProject(arg1) {
 
 export function SaveMeetingMessage(arg1, arg2, arg3) {
   return window['go']['main']['App']['SaveMeetingMessage'](arg1, arg2, arg3);
+}
+
+export function StartMeeting(arg1, arg2) {
+  return window['go']['main']['App']['StartMeeting'](arg1, arg2);
 }

@@ -6,13 +6,20 @@ import {HStack} from '@astryxdesign/core/HStack'
 import {Text} from '@astryxdesign/core/Text'
 import {Heading} from '@astryxdesign/core/Heading'
 import {TopNav, TopNavHeading} from '@astryxdesign/core/TopNav'
+import {Dialog, DialogHeader} from '@astryxdesign/core/Dialog'
+import {CheckboxList, CheckboxListItem} from '@astryxdesign/core/CheckboxList'
+import {Layout, LayoutContent, LayoutFooter} from '@astryxdesign/core/Layout'
 import {EmptyState} from '@astryxdesign/core/EmptyState'
-import {GetProjectMeta, ListMeetings, GetTeamRoles} from '../../wailsjs/go/main/App'
+import {
+  GetProjectMeta, ListMeetings, GetTeamRoles, GetActiveMeeting,
+  StartMeeting, EndActiveMeeting
+} from '../../wailsjs/go/main/App'
 import type {main} from '../../wailsjs/go/models'
 
 interface Props {
   projectPath: string
   onBack: () => void
+  onStartMeeting: (meeting: main.Meeting) => void
 }
 
 function formatDate(iso: string): string {
@@ -24,10 +31,13 @@ function formatDate(iso: string): string {
   })
 }
 
-export default function ProjectPage({projectPath, onBack}: Props) {
+export default function ProjectPage({projectPath, onBack, onStartMeeting}: Props) {
   const [meta, setMeta] = useState<main.ProjectMeta | null>(null)
   const [meetings, setMeetings] = useState<main.MeetingSummary[]>([])
   const [roles, setRoles] = useState<string[]>([])
+  const [showSetup, setShowSetup] = useState(false)
+  const [selectedAgents, setSelectedAgents] = useState<string[]>([])
+  const [hasActive, setHasActive] = useState(false)
 
   const load = async () => {
     const m = await GetProjectMeta(projectPath)
@@ -37,16 +47,56 @@ export default function ProjectPage({projectPath, onBack}: Props) {
     setMeetings(sorted)
     const r = await GetTeamRoles(projectPath)
     setRoles(r)
+
+    const active = await GetActiveMeeting(projectPath)
+    setHasActive(!!active.id)
   }
 
   useEffect(() => { load() }, [projectPath])
+
+  const handleStartMeeting = () => {
+    setSelectedAgents(roles.length > 0 ? [roles[0]] : [])
+    setShowSetup(true)
+  }
+
+  const handleResumeActive = async () => {
+    const active = await GetActiveMeeting(projectPath)
+    if (active.id) {
+      onStartMeeting(active)
+    }
+  }
+
+  const handleBeginMeeting = async () => {
+    if (selectedAgents.length === 0) return
+    if (hasActive) {
+      await EndActiveMeeting(projectPath)
+    }
+    const meeting = await StartMeeting(projectPath, selectedAgents)
+    setShowSetup(false)
+    onStartMeeting(meeting)
+  }
+
+  const handleResumeMeeting = async (id: string) => {
+    if (hasActive) {
+      await EndActiveMeeting(projectPath)
+    }
+    const meeting = await StartMeeting(projectPath, [])
+    onStartMeeting(meeting)
+  }
 
   return (
     <>
       <TopNav
         heading={<TopNavHeading heading={meta?.name || 'Project'} />}
         startContent={<Button label="Back" variant="ghost" onClick={onBack} />}
-        endContent={<Button label="Start New Meeting" variant="primary" onClick={() => {}} />}
+        endContent={
+          <HStack gap={2}>
+            {hasActive && (
+              <Button label="Resume Active Meeting" variant="secondary" onClick={handleResumeActive} />
+            )}
+            <Button label="Start New Meeting" variant="primary" onClick={handleStartMeeting} />
+          </HStack>
+        }
       />
 
       <div className="page-container">
@@ -92,7 +142,7 @@ export default function ProjectPage({projectPath, onBack}: Props) {
                             {formatDate(m.startedAt)} &middot; {m.agentCount} agent{m.agentCount !== 1 ? 's' : ''}
                           </Text>
                         </VStack>
-                        <Button label="Resume" variant="secondary" size="sm" onClick={() => {}} />
+                        <Button label="Resume" variant="secondary" size="sm" onClick={() => handleResumeMeeting(m.id)} />
                       </HStack>
                     </Card>
                   ))}
@@ -102,6 +152,50 @@ export default function ProjectPage({projectPath, onBack}: Props) {
           </Card>
         </VStack>
       </div>
+
+      {showSetup && (
+        <Dialog isOpen={showSetup} onOpenChange={(open: boolean) => setShowSetup(open)} width={480}>
+          <Layout
+            header={<DialogHeader title="New Meeting" onOpenChange={(open: boolean) => setShowSetup(open)} />}
+            content={
+              <LayoutContent>
+                <VStack gap={3}>
+                  <Text type="body" color="secondary">
+                    Select which team members to include in this meeting.
+                  </Text>
+                  <CheckboxList
+                    label="Meeting Participants"
+                    value={selectedAgents}
+                    onChange={(values: string[]) => setSelectedAgents(values)}
+                    hasDividers
+                  >
+                    {roles.map((role) => (
+                      <CheckboxListItem
+                        key={role}
+                        value={role}
+                        label={role}
+                      />
+                    ))}
+                  </CheckboxList>
+                </VStack>
+              </LayoutContent>
+            }
+            footer={
+              <LayoutFooter hasDivider>
+                <HStack gap={2} style={{justifyContent: 'flex-end'}}>
+                  <Button label="Cancel" variant="secondary" onClick={() => setShowSetup(false)} />
+                  <Button
+                    label="Begin Meeting"
+                    variant="primary"
+                    isDisabled={selectedAgents.length === 0}
+                    onClick={handleBeginMeeting}
+                  />
+                </HStack>
+              </LayoutFooter>
+            }
+          />
+        </Dialog>
+      )}
     </>
   )
 }

@@ -6,9 +6,13 @@ export function AddProject(arg1:string):Promise<main.ProjectRegistryEntry>;
 
 export function CreateProject(arg1:string,arg2:string,arg3:string):Promise<main.ProjectMeta>;
 
+export function CreateProjectWithRoles(arg1:string,arg2:string,arg3:string,arg4:Array<string>):Promise<main.ProjectMeta>;
+
+export function EndActiveMeeting(arg1:string):Promise<boolean>;
+
 export function EndMeeting(arg1:string,arg2:string,arg3:string):Promise<boolean>;
 
-export function GetOrCreateActiveMeeting(arg1:string):Promise<main.Meeting>;
+export function GetActiveMeeting(arg1:string):Promise<main.Meeting>;
 
 export function GetProjectMeta(arg1:string):Promise<main.ProjectMeta>;
 
@@ -27,3 +31,5 @@ export function LoadMeeting(arg1:string,arg2:string):Promise<main.Meeting>;
 export function RemoveProject(arg1:string):Promise<boolean>;
 
 export function SaveMeetingMessage(arg1:string,arg2:string,arg3:main.Message):Promise<boolean>;
+
+export function StartMeeting(arg1:string,arg2:Array<string>):Promise<main.Meeting>;

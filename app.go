@@ -50,6 +50,16 @@ func (a *App) CreateProject(projectPath, name, description string) ProjectMeta {
 	return *meta
 }
 
+func (a *App) CreateProjectWithRoles(projectPath, name, description string, roles []string) ProjectMeta {
+	meta, err := CreateProject(projectPath, name, description)
+	if err != nil {
+		return ProjectMeta{}
+	}
+	InitTeamRoles(projectPath, roles)
+	AddProject(projectPath)
+	return *meta
+}
+
 func (a *App) GetProjectMeta(projectPath string) ProjectMeta {
 	meta := loadProjectMeta(projectPath)
 	if meta == nil {
@@ -91,7 +101,24 @@ func (a *App) LoadMeeting(projectPath, meetingID string) Meeting {
 	return *meeting
 }
 
-func (a *App) GetOrCreateActiveMeeting(projectPath string) Meeting {
+func (a *App) GetActiveMeeting(projectPath string) Meeting {
+	activePath := filepath.Join(projectPath, ".aiteam", "active_meeting.json")
+	data, err := os.ReadFile(activePath)
+	if err != nil {
+		return Meeting{}
+	}
+	var active ActiveMeeting
+	if json.Unmarshal(data, &active) != nil || active.MeetingID == "" {
+		return Meeting{}
+	}
+	meeting, err := LoadMeeting(projectPath, active.MeetingID)
+	if err != nil {
+		return Meeting{}
+	}
+	return *meeting
+}
+
+func (a *App) StartMeeting(projectPath string, agents []string) Meeting {
 	activePath := filepath.Join(projectPath, ".aiteam", "active_meeting.json")
 	data, err := os.ReadFile(activePath)
 	if err == nil {
@@ -99,6 +126,7 @@ func (a *App) GetOrCreateActiveMeeting(projectPath string) Meeting {
 		if json.Unmarshal(data, &active) == nil && active.MeetingID != "" {
 			meeting, err := LoadMeeting(projectPath, active.MeetingID)
 			if err == nil {
+				meeting.Agents = agents
 				return *meeting
 			}
 		}
@@ -109,7 +137,7 @@ func (a *App) GetOrCreateActiveMeeting(projectPath string) Meeting {
 		ID:            id,
 		Title:         "Untitled Meeting",
 		StartedAt:     time.Now().UTC().Format(time.RFC3339),
-		Agents:        []string{},
+		Agents:        agents,
 		AgentSessions: map[string]string{},
 		Messages:      []Message{},
 	}
@@ -124,6 +152,27 @@ func (a *App) GetOrCreateActiveMeeting(projectPath string) Meeting {
 	os.WriteFile(activePath, activeData, 0644)
 
 	return meeting
+}
+
+func (a *App) EndActiveMeeting(projectPath string) bool {
+	activePath := filepath.Join(projectPath, ".aiteam", "active_meeting.json")
+	data, err := os.ReadFile(activePath)
+	if err != nil {
+		return false
+	}
+	var active ActiveMeeting
+	if json.Unmarshal(data, &active) != nil || active.MeetingID == "" {
+		return false
+	}
+	meeting, err := LoadMeeting(projectPath, active.MeetingID)
+	if err != nil {
+		os.Remove(activePath)
+		return false
+	}
+	meeting.EndedAt = time.Now().UTC().Format(time.RFC3339)
+	SaveMeeting(projectPath, meeting)
+	os.Remove(activePath)
+	return true
 }
 
 func (a *App) SaveMeetingMessage(projectPath, meetingID string, msg Message) bool {
